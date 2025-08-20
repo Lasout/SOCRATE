@@ -6,6 +6,10 @@
     <title>Gestionnaire de Recettes</title>
     <meta name="description" content="Gestionnaire de recettes avec sélection aléatoire et génération automatique de listes de courses">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍽️</text></svg>">
+    
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         * {
             margin: 0;
@@ -34,11 +38,32 @@
             color: white;
             padding: 30px;
             text-align: center;
+            position: relative;
         }
 
         .header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
+        }
+
+        .connection-status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status-online {
+            background: #27ae60;
+            color: white;
+        }
+
+        .status-offline {
+            background: #e74c3c;
+            color: white;
         }
 
         .nav {
@@ -119,9 +144,14 @@
             margin-bottom: 10px;
         }
 
-        button:hover {
+        button:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
         .btn-danger {
@@ -222,6 +252,18 @@
             border: 1px solid #ffeaa7;
         }
 
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
         .number-input {
             width: 100px;
             display: inline-block;
@@ -243,6 +285,22 @@
             align-items: center;
         }
 
+        .migration-section {
+            background: #fff3cd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ffc107;
+        }
+
+        .config-section {
+            background: #d1ecf1;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #17a2b8;
+        }
+
         @media (max-width: 768px) {
             .nav {
                 flex-direction: column;
@@ -262,24 +320,76 @@
 <body>
     <div class="container">
         <div class="header">
+            <div id="connection-status" class="connection-status status-offline">⚪ Déconnecté</div>
             <h1>🍽️ Gestionnaire de Recettes</h1>
-            <p>Gérez vos recettes et générez automatiquement vos listes de courses</p>
+            <p>Gérez vos recettes avec synchronisation cloud via Supabase</p>
         </div>
 
         <div class="nav">
-            <button class="nav-btn active" data-section="recipes">Mes Recettes</button>
+            <button class="nav-btn active" data-section="config">Configuration</button>
+            <button class="nav-btn" data-section="recipes">Mes Recettes</button>
             <button class="nav-btn" data-section="add-recipe">Ajouter Recette</button>
             <button class="nav-btn" data-section="random">Sélection Aléatoire</button>
             <button class="nav-btn" data-section="shopping">Liste de Courses</button>
+            <button class="nav-btn" data-section="migration">Migration</button>
         </div>
 
         <div class="content">
+            <!-- Section Configuration -->
+            <div id="config" class="section active">
+                <h2>Configuration Supabase</h2>
+                <div class="config-section">
+                    <p><strong>Instructions :</strong></p>
+                    <ol>
+                        <li>Créez un compte sur <a href="https://supabase.com" target="_blank">supabase.com</a></li>
+                        <li>Créez un nouveau projet</li>
+                        <li>Allez dans Settings → API</li>
+                        <li>Copiez votre URL et clé API ci-dessous</li>
+                        <li>Exécutez le script SQL fourni dans SQL Editor</li>
+                    </ol>
+                </div>
+
+                <div class="form-group">
+                    <label for="supabase-url">URL Supabase *</label>
+                    <input type="url" id="supabase-url" placeholder="https://xxxxxx.supabase.co">
+                </div>
+
+                <div class="form-group">
+                    <label for="supabase-key">Clé API (anon/public) *</label>
+                    <input type="password" id="supabase-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6...">
+                </div>
+
+                <button id="test-connection" class="btn-success">Tester la connexion</button>
+                <button id="save-config" class="btn-success">Sauvegarder la configuration</button>
+
+                <div id="connection-result"></div>
+            </div>
+
+            <!-- Section Migration -->
+            <div id="migration" class="section">
+                <h2>Migration des données</h2>
+                <div class="migration-section">
+                    <h3>📦 Migration localStorage → Supabase</h3>
+                    <p>Transférez vos recettes stockées localement vers Supabase pour la synchronisation cloud.</p>
+                    
+                    <div id="migration-status"></div>
+                    
+                    <button id="check-local-data">Vérifier les données locales</button>
+                    <button id="migrate-data" class="btn-success" disabled>Migrer vers Supabase</button>
+                    <button id="clear-local-data" class="btn-danger" disabled>Vider localStorage</button>
+                </div>
+            </div>
+
             <!-- Section Mes Recettes -->
-            <div id="recipes" class="section active">
+            <div id="recipes" class="section">
                 <h2>Mes Recettes</h2>
+                <button id="refresh-recipes" class="btn-success">🔄 Actualiser</button>
                 <div id="recipes-list"></div>
                 <div id="no-recipes" class="alert alert-info" style="display: none;">
                     <strong>Aucune recette trouvée.</strong> Commencez par ajouter quelques recettes !
+                </div>
+                <div id="recipes-loading" class="loading" style="display: none;">
+                    <strong>Chargement des recettes...</strong>
                 </div>
             </div>
 
@@ -342,7 +452,7 @@
                     </div>
 
                     <button type="button" id="add-ingredient">Ajouter un ingrédient</button>
-                    <button type="submit" class="btn-success">Enregistrer la recette</button>
+                    <button type="submit" id="save-recipe" class="btn-success">Enregistrer la recette</button>
                 </form>
             </div>
 
@@ -369,63 +479,156 @@
     </div>
 
     <script>
-        // Gestion des données (stockage local)
-        class RecipeManager {
+        // Configuration et client Supabase
+        let supabaseClient = null;
+        let isConnected = false;
+
+        // Gestion des données
+        class RecipeManagerSupabase {
             constructor() {
-                this.recipes = this.loadRecipes();
+                this.recipes = [];
                 this.selectedRecipes = [];
+                this.loadConfig();
             }
 
-            loadRecipes() {
-                const stored = localStorage.getItem('recipes');
-                if (stored) {
-                    return JSON.parse(stored);
+            // Configuration Supabase
+            loadConfig() {
+                const url = localStorage.getItem('supabase_url');
+                const key = localStorage.getItem('supabase_key');
+                
+                if (url && key) {
+                    document.getElementById('supabase-url').value = url;
+                    document.getElementById('supabase-key').value = key;
+                    this.initSupabase(url, key);
                 }
-                // Données d'exemple pour démarrer
-                return [
-                    {
-                        id: 1,
-                        name: "Spaghetti Bolognaise",
-                        portions: 4,
-                        type: "plat",
-                        link: "",
-                        ingredients: [
-                            { name: "Spaghetti", quantity: 400, unit: "g" },
-                            { name: "Viande hachée", quantity: 300, unit: "g" },
-                            { name: "Tomates concassées", quantity: 400, unit: "g" },
-                            { name: "Oignon", quantity: 1, unit: "pièce" },
-                            { name: "Ail", quantity: 2, unit: "pièce" }
-                        ]
-                    },
-                    {
-                        id: 2,
-                        name: "Risotto aux champignons",
-                        portions: 4,
-                        type: "plat",
-                        link: "",
-                        ingredients: [
-                            { name: "Riz arborio", quantity: 300, unit: "g" },
-                            { name: "Champignons", quantity: 200, unit: "g" },
-                            { name: "Bouillon de légumes", quantity: 1, unit: "l" },
-                            { name: "Parmesan", quantity: 100, unit: "g" }
-                        ]
+            }
+
+            saveConfig(url, key) {
+                localStorage.setItem('supabase_url', url);
+                localStorage.setItem('supabase_key', key);
+            }
+
+            initSupabase(url, key) {
+                try {
+                    supabaseClient = supabase.createClient(url, key);
+                    this.testConnection();
+                } catch (error) {
+                    this.updateConnectionStatus(false, 'Erreur de configuration');
+                }
+            }
+
+            async testConnection() {
+                if (!supabaseClient) {
+                    this.updateConnectionStatus(false, 'Client non initialisé');
+                    return false;
+                }
+
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('recipes')
+                        .select('count', { count: 'exact', head: true });
+
+                    if (error) {
+                        this.updateConnectionStatus(false, `Erreur DB: ${error.message}`);
+                        return false;
                     }
-                ];
+
+                    this.updateConnectionStatus(true, 'Connexion réussie');
+                    return true;
+                } catch (error) {
+                    this.updateConnectionStatus(false, `Erreur réseau: ${error.message}`);
+                    return false;
+                }
             }
 
-            saveRecipes() {
-                localStorage.setItem('recipes', JSON.stringify(this.recipes));
+            updateConnectionStatus(connected, message = '') {
+                isConnected = connected;
+                const statusEl = document.getElementById('connection-status');
+                const resultEl = document.getElementById('connection-result');
+                
+                if (connected) {
+                    statusEl.className = 'connection-status status-online';
+                    statusEl.textContent = '🟢 Connecté';
+                    if (resultEl) {
+                        resultEl.innerHTML = '<div class="alert alert-info">✅ Connexion Supabase réussie !</div>';
+                    }
+                } else {
+                    statusEl.className = 'connection-status status-offline';
+                    statusEl.textContent = '🔴 Déconnecté';
+                    if (resultEl) {
+                        resultEl.innerHTML = `<div class="alert alert-error">❌ ${message}</div>`;
+                    }
+                }
             }
 
-            addRecipe(recipe) {
-                recipe.id = Date.now();
-                this.recipes.push(recipe);
-                this.saveRecipes();
+            // CRUD Recettes
+            async loadRecipes() {
+                if (!supabaseClient || !isConnected) {
+                    throw new Error('Supabase non configuré ou déconnecté');
+                }
+
+                const { data, error } = await supabaseClient
+                    .from('recipes')
+                    .select(`
+                        *,
+                        ingredients (*)
+                    `)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                this.recipes = data || [];
+                return this.recipes;
             }
 
-            deleteRecipe(id) {
-                this.recipes = this.recipes.filter(recipe => recipe.id !== id);
-                this.saveRecipes();
+            async addRecipe(recipe) {
+                if (!supabaseClient || !isConnected) {
+                    throw new Error('Supabase non configuré');
+                }
+
+                // Insérer la recette
+                const { data: recipeData, error: recipeError } = await supabaseClient
+                    .from('recipes')
+                    .insert([{
+                        name: recipe.name,
+                        portions: recipe.portions,
+                        type: recipe.type,
+                        link: recipe.link || null
+                    }])
+                    .select()
+                    .single();
+
+                if (recipeError) throw recipeError;
+
+                // Insérer les ingrédients
+                const ingredients = recipe.ingredients.map(ing => ({
+                    recipe_id: recipeData.id,
+                    name: ing.name,
+                    quantity: ing.quantity,
+                    unit: ing.unit
+                }));
+
+                const { error: ingredientsError } = await supabaseClient
+                    .from('ingredients')
+                    .insert(ingredients);
+
+                if (ingredientsError) throw ingredientsError;
+
+                return recipeData;
+            }
+
+            async deleteRecipe(id) {
+                if (!supabaseClient || !isConnected) {
+                    throw new Error('Supabase non configuré');
+                }
+
+                // Les ingrédients seront supprimés automatiquement (CASCADE)
+                const { error } = await supabaseClient
+                    .from('recipes')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
             }
 
             getRecipesByType(type) {
@@ -471,13 +674,52 @@
 
                 return Array.from(shoppingMap.values()).sort((a, b) => a.name.localeCompare(b.name));
             }
+
+            // Migration depuis localStorage
+            getLocalStorageRecipes() {
+                const stored = localStorage.getItem('recipes');
+                return stored ? JSON.parse(stored) : [];
+            }
+
+            async migrateFromLocalStorage() {
+                const localRecipes = this.getLocalStorageRecipes();
+                if (localRecipes.length === 0) {
+                    throw new Error('Aucune recette trouvée dans localStorage');
+                }
+
+                const results = [];
+                for (const recipe of localRecipes) {
+                    try {
+                        const migrated = await this.addRecipe(recipe);
+                        results.push({ success: true, name: recipe.name, id: migrated.id });
+                    } catch (error) {
+                        results.push({ success: false, name: recipe.name, error: error.message });
+                    }
+                }
+
+                return results;
+            }
+
+            clearLocalStorage() {
+                localStorage.removeItem('recipes');
+            }
         }
 
         // Instance globale
-        const recipeManager = new RecipeManager();
+        const recipeManager = new RecipeManagerSupabase();
+
+        // Initialisation au chargement de la page
+        document.addEventListener('DOMContentLoaded', function() {
+            setupNavigation();
+            setupConfiguration();
+            setupMigration();
+            setupRecipeManagement();
+            setupRandomSelection();
+            setupShoppingList();
+        });
 
         // Gestion de la navigation
-        document.addEventListener('DOMContentLoaded', function() {
+        function setupNavigation() {
             const navButtons = document.querySelectorAll('.nav-btn');
             const sections = document.querySelectorAll('.section');
 
@@ -485,60 +727,201 @@
                 button.addEventListener('click', function() {
                     const targetSection = this.dataset.section;
                     
-                    // Mise à jour des boutons actifs
                     navButtons.forEach(btn => btn.classList.remove('active'));
                     this.classList.add('active');
                     
-                    // Mise à jour des sections visibles
                     sections.forEach(section => section.classList.remove('active'));
                     document.getElementById(targetSection).classList.add('active');
                     
-                    // Rafraîchir les données selon la section
+                    // Actions spécifiques selon la section
                     if (targetSection === 'recipes') {
                         displayRecipes();
                     }
                 });
             });
+        }
 
-            // Initialisation
-            displayRecipes();
+        // Configuration Supabase
+        function setupConfiguration() {
+            const testBtn = document.getElementById('test-connection');
+            const saveBtn = document.getElementById('save-config');
+
+            testBtn.addEventListener('click', async function() {
+                const url = document.getElementById('supabase-url').value;
+                const key = document.getElementById('supabase-key').value;
+
+                if (!url || !key) {
+                    document.getElementById('connection-result').innerHTML = 
+                        '<div class="alert alert-error">Veuillez remplir tous les champs</div>';
+                    return;
+                }
+
+                this.disabled = true;
+                this.textContent = 'Test en cours...';
+
+                recipeManager.initSupabase(url, key);
+                
+                // Attendre un peu pour le test
+                setTimeout(() => {
+                    this.disabled = false;
+                    this.textContent = 'Tester la connexion';
+                }, 2000);
+            });
+
+            saveBtn.addEventListener('click', function() {
+                const url = document.getElementById('supabase-url').value;
+                const key = document.getElementById('supabase-key').value;
+
+                if (!url || !key) {
+                    alert('Veuillez remplir tous les champs');
+                    return;
+                }
+
+                recipeManager.saveConfig(url, key);
+                alert('Configuration sauvegardée !');
+            });
+        }
+
+        // Gestion de la migration
+        function setupMigration() {
+            const checkBtn = document.getElementById('check-local-data');
+            const migrateBtn = document.getElementById('migrate-data');
+            const clearBtn = document.getElementById('clear-local-data');
+            const statusEl = document.getElementById('migration-status');
+
+            checkBtn.addEventListener('click', function() {
+                const localRecipes = recipeManager.getLocalStorageRecipes();
+                
+                if (localRecipes.length === 0) {
+                    statusEl.innerHTML = '<div class="alert alert-info">Aucune recette trouvée dans localStorage</div>';
+                    migrateBtn.disabled = true;
+                    clearBtn.disabled = true;
+                } else {
+                    statusEl.innerHTML = `
+                        <div class="alert alert-info">
+                            <strong>${localRecipes.length} recette(s) trouvée(s) dans localStorage :</strong>
+                            <ul style="margin-top: 10px;">
+                                ${localRecipes.map(r => `<li>${r.name} (${r.ingredients?.length || 0} ingrédients)</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                    migrateBtn.disabled = false;
+                    clearBtn.disabled = false;
+                }
+            });
+
+            migrateBtn.addEventListener('click', async function() {
+                if (!isConnected) {
+                    statusEl.innerHTML = '<div class="alert alert-error">Veuillez d\'abord configurer et tester Supabase</div>';
+                    return;
+                }
+
+                this.disabled = true;
+                this.textContent = 'Migration en cours...';
+
+                try {
+                    const results = await recipeManager.migrateFromLocalStorage();
+                    const successes = results.filter(r => r.success);
+                    const failures = results.filter(r => !r.success);
+
+                    let html = `<div class="alert alert-info">
+                        <strong>Migration terminée !</strong><br>
+                        ✅ ${successes.length} recette(s) migrée(s) avec succès
+                    `;
+
+                    if (failures.length > 0) {
+                        html += `<br>❌ ${failures.length} échec(s) :
+                            <ul>${failures.map(f => `<li>${f.name}: ${f.error}</li>`).join('')}</ul>
+                        `;
+                    }
+
+                    html += '</div>';
+                    statusEl.innerHTML = html;
+
+                    if (successes.length > 0) {
+                        clearBtn.disabled = false;
+                    }
+
+                } catch (error) {
+                    statusEl.innerHTML = `<div class="alert alert-error">Erreur: ${error.message}</div>`;
+                } finally {
+                    this.disabled = false;
+                    this.textContent = 'Migrer vers Supabase';
+                }
+            });
+
+            clearBtn.addEventListener('click', function() {
+                if (confirm('Êtes-vous sûr de vouloir supprimer les données localStorage ? Cette action est irréversible.')) {
+                    recipeManager.clearLocalStorage();
+                    statusEl.innerHTML = '<div class="alert alert-info">Données localStorage supprimées</div>';
+                    this.disabled = true;
+                    migrateBtn.disabled = true;
+                }
+            });
+        }
+
+        // Gestion des recettes
+        function setupRecipeManagement() {
+            // Bouton d'actualisation
+            document.getElementById('refresh-recipes').addEventListener('click', displayRecipes);
+
+            // Formulaire d'ajout de recette
             setupRecipeForm();
-            setupRandomSelection();
-            setupShoppingList();
-        });
+        }
 
         // Affichage des recettes
-        function displayRecipes() {
+        async function displayRecipes() {
             const container = document.getElementById('recipes-list');
             const noRecipesMsg = document.getElementById('no-recipes');
+            const loadingMsg = document.getElementById('recipes-loading');
 
-            if (recipeManager.recipes.length === 0) {
-                container.innerHTML = '';
-                noRecipesMsg.style.display = 'block';
+            if (!isConnected) {
+                container.innerHTML = '<div class="alert alert-warning">Veuillez configurer Supabase pour voir vos recettes</div>';
+                noRecipesMsg.style.display = 'none';
                 return;
             }
 
+            // Afficher le loading
+            container.innerHTML = '';
             noRecipesMsg.style.display = 'none';
-            container.innerHTML = recipeManager.recipes.map(recipe => `
-                <div class="recipe-card">
-                    <div class="recipe-title">${recipe.name}</div>
-                    <div class="recipe-meta">
-                        <span><strong>Type:</strong> ${recipe.type}</span>
-                        <span><strong>Portions:</strong> ${recipe.portions}</span>
-                        ${recipe.link ? `<span><a href="${recipe.link}" target="_blank">Voir la recette</a></span>` : ''}
-                    </div>
-                    <div class="ingredients-list">
-                        <strong>Ingrédients:</strong>
-                        ${recipe.ingredients.map(ing => `
-                            <div class="ingredient-item">
-                                <span>${ing.name}</span>
-                                <span>${ing.quantity} ${ing.unit}</span>
+            loadingMsg.style.display = 'block';
+
+            try {
+                await recipeManager.loadRecipes();
+
+                if (recipeManager.recipes.length === 0) {
+                    noRecipesMsg.style.display = 'block';
+                    container.innerHTML = '';
+                } else {
+                    noRecipesMsg.style.display = 'none';
+                    container.innerHTML = recipeManager.recipes.map(recipe => `
+                        <div class="recipe-card">
+                            <div class="recipe-title">${recipe.name}</div>
+                            <div class="recipe-meta">
+                                <span><strong>Type:</strong> ${recipe.type}</span>
+                                <span><strong>Portions:</strong> ${recipe.portions}</span>
+                                <span><strong>Ajouté:</strong> ${new Date(recipe.created_at).toLocaleDateString('fr-FR')}</span>
+                                ${recipe.link ? `<span><a href="${recipe.link}" target="_blank">Voir la recette</a></span>` : ''}
                             </div>
-                        `).join('')}
-                    </div>
-                    <button onclick="deleteRecipe(${recipe.id})" class="btn-danger">Supprimer</button>
-                </div>
-            `).join('');
+                            <div class="ingredients-list">
+                                <strong>Ingrédients:</strong>
+                                ${recipe.ingredients.map(ing => `
+                                    <div class="ingredient-item">
+                                        <span>${ing.name}</span>
+                                        <span>${ing.quantity} ${ing.unit}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <button onclick="deleteRecipe(${recipe.id})" class="btn-danger">Supprimer</button>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="alert alert-error">Erreur: ${error.message}</div>`;
+                noRecipesMsg.style.display = 'none';
+            } finally {
+                loadingMsg.style.display = 'none';
+            }
         }
 
         // Configuration du formulaire d'ajout de recette
@@ -548,9 +931,99 @@
             const container = document.getElementById('ingredients-container');
 
             addIngredientBtn.addEventListener('click', function() {
-                const ingredientRow = document.createElement('div');
-                ingredientRow.className = 'ingredient-row';
-                ingredientRow.innerHTML = `
+                addIngredientRow(container);
+            });
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                if (!isConnected) {
+                    alert('Veuillez configurer Supabase avant d\'ajouter une recette');
+                    return;
+                }
+
+                const saveBtn = document.getElementById('save-recipe');
+                saveBtn.disabled = true;
+                saveBtn.textContent = 'Enregistrement...';
+
+                try {
+                    const recipe = {
+                        name: document.getElementById('recipe-name').value,
+                        portions: parseInt(document.getElementById('recipe-portions').value),
+                        type: document.getElementById('recipe-type').value,
+                        link: document.getElementById('recipe-link').value,
+                        ingredients: []
+                    };
+
+                    // Collecte des ingrédients
+                    const ingredientRows = container.querySelectorAll('.ingredient-row');
+                    ingredientRows.forEach(row => {
+                        const name = row.querySelector('.ingredient-name').value;
+                        const quantity = parseFloat(row.querySelector('.ingredient-quantity').value);
+                        const unit = row.querySelector('.ingredient-unit').value;
+
+                        if (name && quantity && unit) {
+                            recipe.ingredients.push({ name, quantity, unit });
+                        }
+                    });
+
+                    if (recipe.ingredients.length === 0) {
+                        alert('Veuillez ajouter au moins un ingrédient.');
+                        return;
+                    }
+
+                    await recipeManager.addRecipe(recipe);
+                    
+                    // Réinitialiser le formulaire
+                    form.reset();
+                    resetIngredientsContainer();
+                    
+                    alert('Recette ajoutée avec succès !');
+
+                } catch (error) {
+                    alert(`Erreur: ${error.message}`);
+                } finally {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Enregistrer la recette';
+                }
+            });
+        }
+
+        function addIngredientRow(container) {
+            const ingredientRow = document.createElement('div');
+            ingredientRow.className = 'ingredient-row';
+            ingredientRow.innerHTML = `
+                <div class="form-group">
+                    <label>Ingrédient *</label>
+                    <input type="text" class="ingredient-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Quantité *</label>
+                    <input type="number" class="ingredient-quantity" step="0.1" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label>Unité *</label>
+                    <select class="ingredient-unit" required>
+                        <option value="">Sélectionnez</option>
+                        <option value="g">grammes</option>
+                        <option value="kg">kilogrammes</option>
+                        <option value="ml">millilitres</option>
+                        <option value="l">litres</option>
+                        <option value="pièce">pièce(s)</option>
+                        <option value="cuillère à soupe">cuillère(s) à soupe</option>
+                        <option value="cuillère à café">cuillère(s) à café</option>
+                        <option value="tasse">tasse(s)</option>
+                    </select>
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" class="btn-danger">Supprimer</button>
+            `;
+            container.appendChild(ingredientRow);
+        }
+
+        function resetIngredientsContainer() {
+            const container = document.getElementById('ingredients-container');
+            container.innerHTML = `
+                <div class="ingredient-row">
                     <div class="form-group">
                         <label>Ingrédient *</label>
                         <input type="text" class="ingredient-name" required>
@@ -573,72 +1046,8 @@
                             <option value="tasse">tasse(s)</option>
                         </select>
                     </div>
-                    <button type="button" onclick="this.parentElement.remove()" class="btn-danger">Supprimer</button>
-                `;
-                container.appendChild(ingredientRow);
-            });
-
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-
-                const recipe = {
-                    name: document.getElementById('recipe-name').value,
-                    portions: parseInt(document.getElementById('recipe-portions').value),
-                    type: document.getElementById('recipe-type').value,
-                    link: document.getElementById('recipe-link').value,
-                    ingredients: []
-                };
-
-                // Collecte des ingrédients
-                const ingredientRows = container.querySelectorAll('.ingredient-row');
-                ingredientRows.forEach(row => {
-                    const name = row.querySelector('.ingredient-name').value;
-                    const quantity = parseFloat(row.querySelector('.ingredient-quantity').value);
-                    const unit = row.querySelector('.ingredient-unit').value;
-
-                    if (name && quantity && unit) {
-                        recipe.ingredients.push({ name, quantity, unit });
-                    }
-                });
-
-                if (recipe.ingredients.length === 0) {
-                    alert('Veuillez ajouter au moins un ingrédient.');
-                    return;
-                }
-
-                recipeManager.addRecipe(recipe);
-                form.reset();
-                
-                // Réinitialiser le conteneur d'ingrédients avec un seul élément
-                container.innerHTML = `
-                    <div class="ingredient-row">
-                        <div class="form-group">
-                            <label>Ingrédient *</label>
-                            <input type="text" class="ingredient-name" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Quantité *</label>
-                            <input type="number" class="ingredient-quantity" step="0.1" min="0" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Unité *</label>
-                            <select class="ingredient-unit" required>
-                                <option value="">Sélectionnez</option>
-                                <option value="g">grammes</option>
-                                <option value="kg">kilogrammes</option>
-                                <option value="ml">millilitres</option>
-                                <option value="l">litres</option>
-                                <option value="pièce">pièce(s)</option>
-                                <option value="cuillère à soupe">cuillère(s) à soupe</option>
-                                <option value="cuillère à café">cuillère(s) à café</option>
-                                <option value="tasse">tasse(s)</option>
-                            </select>
-                        </div>
-                    </div>
-                `;
-
-                alert('Recette ajoutée avec succès !');
-            });
+                </div>
+            `;
         }
 
         // Configuration de la sélection aléatoire
@@ -647,6 +1056,11 @@
             const container = document.getElementById('selected-recipes-container');
 
             generateBtn.addEventListener('click', function() {
+                if (!isConnected || recipeManager.recipes.length === 0) {
+                    container.innerHTML = '<div class="alert alert-warning">Veuillez d\'abord charger vos recettes</div>';
+                    return;
+                }
+
                 const numRecipes = parseInt(document.getElementById('num-recipes').value);
                 if (!numRecipes || numRecipes < 1) {
                     alert('Veuillez entrer un nombre valide de recettes.');
@@ -692,6 +1106,11 @@
             const container = document.getElementById('shopping-list-container');
 
             generateBtn.addEventListener('click', function() {
+                if (!isConnected) {
+                    container.innerHTML = '<div class="alert alert-warning">Veuillez configurer Supabase</div>';
+                    return;
+                }
+
                 if (recipeManager.selectedRecipes.length === 0) {
                     container.innerHTML = '<div class="alert alert-warning">Veuillez d\'abord sélectionner des recettes dans la section "Sélection Aléatoire".</div>';
                     return;
@@ -702,10 +1121,11 @@
                 container.innerHTML = `
                     <div class="shopping-list">
                         <h3>🛒 Liste de Courses</h3>
+                        <p><small>Basée sur ${recipeManager.selectedRecipes.length} recette(s) sélectionnée(s)</small></p>
                         ${shoppingList.map(item => `
                             <div class="shopping-item">
                                 <span>${item.name}</span>
-                                <strong>${item.quantity} ${item.unit}</strong>
+                                <strong>${Math.round(item.quantity * 100) / 100} ${item.unit}</strong>
                             </div>
                         `).join('')}
                     </div>
@@ -713,11 +1133,18 @@
             });
         }
 
-        // Fonctions utilitaires
-        function deleteRecipe(id) {
-            if (confirm('Êtes-vous sûr de vouloir supprimer cette recette ?')) {
-                recipeManager.deleteRecipe(id);
-                displayRecipes();
+        // Fonctions utilitaires globales
+        async function deleteRecipe(id) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer cette recette ?')) {
+                return;
+            }
+
+            try {
+                await recipeManager.deleteRecipe(id);
+                displayRecipes(); // Rafraîchir la liste
+                alert('Recette supprimée avec succès');
+            } catch (error) {
+                alert(`Erreur: ${error.message}`);
             }
         }
 
