@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionnaire de Recettes</title>
+    <meta name="description" content="Gestionnaire de recettes avec sélection aléatoire et génération automatique de listes de courses">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍽️</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .nav {
+            background: #ecf0f1;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .nav button {
+            background: none;
+            border: none;
+            padding: 15px 30px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .nav button:hover {
+            background: #d5dbdb;
+        }
+
+        .nav button.active {
+            background: white;
+            border-bottom-color: #3498db;
+            color: #3498db;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        button {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        }
+
+        .recipe-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+            transition: transform 0.3s;
+        }
+
+        .recipe-card:hover {
+            transform: translateX(5px);
+        }
+
+        .recipe-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .recipe-meta {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+
+        .ingredients-list {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .ingredient-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #ecf0f1;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .ingredient-item:last-child {
+            border-bottom: none;
+        }
+
+        .random-selection {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .shopping-list {
+            background: #e8f5e8;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .shopping-item {
+            padding: 10px;
+            border-bottom: 1px solid #c8e6c9;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .shopping-item:last-child {
+            border-bottom: none;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .number-input {
+            width: 100px;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .selected-recipes {
+            margin-top: 20px;
+        }
+
+        .selected-recipe {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        @media (max-width: 768px) {
+            .nav {
+                flex-direction: column;
+            }
+            
+            .recipe-meta {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .content {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍽️ Gestionnaire de Recettes</h1>
+            <p>Gérez vos recettes et générez automatiquement vos listes de courses</p>
+        </div>
+
+        <div class="nav">
+            <button class="nav-btn active" data-section="recipes">Mes Recettes</button>
+            <button class="nav-btn" data-section="add-recipe">Ajouter Recette</button>
+            <button class="nav-btn" data-section="random">Sélection Aléatoire</button>
+            <button class="nav-btn" data-section="shopping">Liste de Courses</button>
+        </div>
+
+        <div class="content">
+            <!-- Section Mes Recettes -->
+            <div id="recipes" class="section active">
+                <h2>Mes Recettes</h2>
+                <div id="recipes-list"></div>
+                <div id="no-recipes" class="alert alert-info" style="display: none;">
+                    <strong>Aucune recette trouvée.</strong> Commencez par ajouter quelques recettes !
+                </div>
+            </div>
+
+            <!-- Section Ajouter Recette -->
+            <div id="add-recipe" class="section">
+                <h2>Ajouter une Nouvelle Recette</h2>
+                <form id="recipe-form">
+                    <div class="form-group">
+                        <label for="recipe-name">Nom de la recette *</label>
+                        <input type="text" id="recipe-name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="recipe-portions">Nombre de portions *</label>
+                        <input type="number" id="recipe-portions" min="1" value="4" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="recipe-type">Type de recette *</label>
+                        <select id="recipe-type" required>
+                            <option value="">Sélectionnez un type</option>
+                            <option value="plat">Plat</option>
+                            <option value="entrée">Entrée</option>
+                            <option value="dessert">Dessert</option>
+                            <option value="accompagnement">Accompagnement</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="recipe-link">Lien (optionnel)</label>
+                        <input type="url" id="recipe-link" placeholder="https://...">
+                    </div>
+
+                    <h3>Ingrédients</h3>
+                    <div id="ingredients-container">
+                        <div class="ingredient-row">
+                            <div class="form-group">
+                                <label>Ingrédient *</label>
+                                <input type="text" class="ingredient-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Quantité *</label>
+                                <input type="number" class="ingredient-quantity" step="0.1" min="0" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Unité *</label>
+                                <select class="ingredient-unit" required>
+                                    <option value="">Sélectionnez</option>
+                                    <option value="g">grammes</option>
+                                    <option value="kg">kilogrammes</option>
+                                    <option value="ml">millilitres</option>
+                                    <option value="l">litres</option>
+                                    <option value="pièce">pièce(s)</option>
+                                    <option value="cuillère à soupe">cuillère(s) à soupe</option>
+                                    <option value="cuillère à café">cuillère(s) à café</option>
+                                    <option value="tasse">tasse(s)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" id="add-ingredient">Ajouter un ingrédient</button>
+                    <button type="submit" class="btn-success">Enregistrer la recette</button>
+                </form>
+            </div>
+
+            <!-- Section Sélection Aléatoire -->
+            <div id="random" class="section">
+                <h2>Sélection Aléatoire de Recettes</h2>
+                <div class="random-selection">
+                    <label for="num-recipes">Nombre de recettes à sélectionner :</label>
+                    <input type="number" id="num-recipes" class="number-input" min="1" value="5">
+                    <button id="generate-random" class="btn-success">Générer une sélection aléatoire</button>
+                </div>
+
+                <div id="selected-recipes-container" class="selected-recipes"></div>
+            </div>
+
+            <!-- Section Liste de Courses -->
+            <div id="shopping" class="section">
+                <h2>Liste de Courses</h2>
+                <p>Basée sur les recettes sélectionnées dans la section "Sélection Aléatoire"</p>
+                <button id="generate-shopping">Générer la liste de courses</button>
+                <div id="shopping-list-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Gestion des données (stockage local)
+        class RecipeManager {
+            constructor() {
+                this.recipes = this.loadRecipes();
+                this.selectedRecipes = [];
+            }
+
+            loadRecipes() {
+                const stored = localStorage.getItem('recipes');
+                if (stored) {
+                    return JSON.parse(stored);
+                }
+                // Données d'exemple pour démarrer
+                return [
+                    {
+                        id: 1,
+                        name: "Spaghetti Bolognaise",
+                        portions: 4,
+                        type: "plat",
+                        link: "",
+                        ingredients: [
+                            { name: "Spaghetti", quantity: 400, unit: "g" },
+                            { name: "Viande hachée", quantity: 300, unit: "g" },
+                            { name: "Tomates concassées", quantity: 400, unit: "g" },
+                            { name: "Oignon", quantity: 1, unit: "pièce" },
+                            { name: "Ail", quantity: 2, unit: "pièce" }
+                        ]
+                    },
+                    {
+                        id: 2,
+                        name: "Risotto aux champignons",
+                        portions: 4,
+                        type: "plat",
+                        link: "",
+                        ingredients: [
+                            { name: "Riz arborio", quantity: 300, unit: "g" },
+                            { name: "Champignons", quantity: 200, unit: "g" },
+                            { name: "Bouillon de légumes", quantity: 1, unit: "l" },
+                            { name: "Parmesan", quantity: 100, unit: "g" }
+                        ]
+                    }
+                ];
+            }
+
+            saveRecipes() {
+                localStorage.setItem('recipes', JSON.stringify(this.recipes));
+            }
+
+            addRecipe(recipe) {
+                recipe.id = Date.now();
+                this.recipes.push(recipe);
+                this.saveRecipes();
+            }
+
+            deleteRecipe(id) {
+                this.recipes = this.recipes.filter(recipe => recipe.id !== id);
+                this.saveRecipes();
+            }
+
+            getRecipesByType(type) {
+                return this.recipes.filter(recipe => recipe.type === type);
+            }
+
+            getRandomRecipes(count, type = 'plat') {
+                const availableRecipes = this.getRecipesByType(type);
+                if (availableRecipes.length === 0) return [];
+                
+                const shuffled = [...availableRecipes].sort(() => 0.5 - Math.random());
+                return shuffled.slice(0, Math.min(count, availableRecipes.length));
+            }
+
+            generateShoppingList() {
+                const shoppingMap = new Map();
+
+                this.selectedRecipes.forEach(selection => {
+                    const recipe = this.recipes.find(r => r.id === selection.recipeId);
+                    if (!recipe) return;
+
+                    const multiplier = selection.portions / recipe.portions;
+
+                    recipe.ingredients.forEach(ingredient => {
+                        const key = `${ingredient.name}_${ingredient.unit}`;
+                        const adjustedQuantity = ingredient.quantity * multiplier;
+
+                        if (shoppingMap.has(key)) {
+                            shoppingMap.set(key, {
+                                name: ingredient.name,
+                                quantity: shoppingMap.get(key).quantity + adjustedQuantity,
+                                unit: ingredient.unit
+                            });
+                        } else {
+                            shoppingMap.set(key, {
+                                name: ingredient.name,
+                                quantity: adjustedQuantity,
+                                unit: ingredient.unit
+                            });
+                        }
+                    });
+                });
+
+                return Array.from(shoppingMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+            }
+        }
+
+        // Instance globale
+        const recipeManager = new RecipeManager();
+
+        // Gestion de la navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            const navButtons = document.querySelectorAll('.nav-btn');
+            const sections = document.querySelectorAll('.section');
+
+            navButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const targetSection = this.dataset.section;
+                    
+                    // Mise à jour des boutons actifs
+                    navButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Mise à jour des sections visibles
+                    sections.forEach(section => section.classList.remove('active'));
+                    document.getElementById(targetSection).classList.add('active');
+                    
+                    // Rafraîchir les données selon la section
+                    if (targetSection === 'recipes') {
+                        displayRecipes();
+                    }
+                });
+            });
+
+            // Initialisation
+            displayRecipes();
+            setupRecipeForm();
+            setupRandomSelection();
+            setupShoppingList();
+        });
+
+        // Affichage des recettes
+        function displayRecipes() {
+            const container = document.getElementById('recipes-list');
+            const noRecipesMsg = document.getElementById('no-recipes');
+
+            if (recipeManager.recipes.length === 0) {
+                container.innerHTML = '';
+                noRecipesMsg.style.display = 'block';
+                return;
+            }
+
+            noRecipesMsg.style.display = 'none';
+            container.innerHTML = recipeManager.recipes.map(recipe => `
+                <div class="recipe-card">
+                    <div class="recipe-title">${recipe.name}</div>
+                    <div class="recipe-meta">
+                        <span><strong>Type:</strong> ${recipe.type}</span>
+                        <span><strong>Portions:</strong> ${recipe.portions}</span>
+                        ${recipe.link ? `<span><a href="${recipe.link}" target="_blank">Voir la recette</a></span>` : ''}
+                    </div>
+                    <div class="ingredients-list">
+                        <strong>Ingrédients:</strong>
+                        ${recipe.ingredients.map(ing => `
+                            <div class="ingredient-item">
+                                <span>${ing.name}</span>
+                                <span>${ing.quantity} ${ing.unit}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button onclick="deleteRecipe(${recipe.id})" class="btn-danger">Supprimer</button>
+                </div>
+            `).join('');
+        }
+
+        // Configuration du formulaire d'ajout de recette
+        function setupRecipeForm() {
+            const form = document.getElementById('recipe-form');
+            const addIngredientBtn = document.getElementById('add-ingredient');
+            const container = document.getElementById('ingredients-container');
+
+            addIngredientBtn.addEventListener('click', function() {
+                const ingredientRow = document.createElement('div');
+                ingredientRow.className = 'ingredient-row';
+                ingredientRow.innerHTML = `
+                    <div class="form-group">
+                        <label>Ingrédient *</label>
+                        <input type="text" class="ingredient-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantité *</label>
+                        <input type="number" class="ingredient-quantity" step="0.1" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Unité *</label>
+                        <select class="ingredient-unit" required>
+                            <option value="">Sélectionnez</option>
+                            <option value="g">grammes</option>
+                            <option value="kg">kilogrammes</option>
+                            <option value="ml">millilitres</option>
+                            <option value="l">litres</option>
+                            <option value="pièce">pièce(s)</option>
+                            <option value="cuillère à soupe">cuillère(s) à soupe</option>
+                            <option value="cuillère à café">cuillère(s) à café</option>
+                            <option value="tasse">tasse(s)</option>
+                        </select>
+                    </div>
+                    <button type="button" onclick="this.parentElement.remove()" class="btn-danger">Supprimer</button>
+                `;
+                container.appendChild(ingredientRow);
+            });
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const recipe = {
+                    name: document.getElementById('recipe-name').value,
+                    portions: parseInt(document.getElementById('recipe-portions').value),
+                    type: document.getElementById('recipe-type').value,
+                    link: document.getElementById('recipe-link').value,
+                    ingredients: []
+                };
+
+                // Collecte des ingrédients
+                const ingredientRows = container.querySelectorAll('.ingredient-row');
+                ingredientRows.forEach(row => {
+                    const name = row.querySelector('.ingredient-name').value;
+                    const quantity = parseFloat(row.querySelector('.ingredient-quantity').value);
+                    const unit = row.querySelector('.ingredient-unit').value;
+
+                    if (name && quantity && unit) {
+                        recipe.ingredients.push({ name, quantity, unit });
+                    }
+                });
+
+                if (recipe.ingredients.length === 0) {
+                    alert('Veuillez ajouter au moins un ingrédient.');
+                    return;
+                }
+
+                recipeManager.addRecipe(recipe);
+                form.reset();
+                
+                // Réinitialiser le conteneur d'ingrédients avec un seul élément
+                container.innerHTML = `
+                    <div class="ingredient-row">
+                        <div class="form-group">
+                            <label>Ingrédient *</label>
+                            <input type="text" class="ingredient-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Quantité *</label>
+                            <input type="number" class="ingredient-quantity" step="0.1" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Unité *</label>
+                            <select class="ingredient-unit" required>
+                                <option value="">Sélectionnez</option>
+                                <option value="g">grammes</option>
+                                <option value="kg">kilogrammes</option>
+                                <option value="ml">millilitres</option>
+                                <option value="l">litres</option>
+                                <option value="pièce">pièce(s)</option>
+                                <option value="cuillère à soupe">cuillère(s) à soupe</option>
+                                <option value="cuillère à café">cuillère(s) à café</option>
+                                <option value="tasse">tasse(s)</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+
+                alert('Recette ajoutée avec succès !');
+            });
+        }
+
+        // Configuration de la sélection aléatoire
+        function setupRandomSelection() {
+            const generateBtn = document.getElementById('generate-random');
+            const container = document.getElementById('selected-recipes-container');
+
+            generateBtn.addEventListener('click', function() {
+                const numRecipes = parseInt(document.getElementById('num-recipes').value);
+                if (!numRecipes || numRecipes < 1) {
+                    alert('Veuillez entrer un nombre valide de recettes.');
+                    return;
+                }
+
+                const randomRecipes = recipeManager.getRandomRecipes(numRecipes, 'plat');
+                if (randomRecipes.length === 0) {
+                    container.innerHTML = '<div class="alert alert-warning">Aucune recette de type "plat" trouvée.</div>';
+                    return;
+                }
+
+                recipeManager.selectedRecipes = randomRecipes.map(recipe => ({
+                    recipeId: recipe.id,
+                    portions: recipe.portions
+                }));
+
+                container.innerHTML = `
+                    <h3>Recettes sélectionnées :</h3>
+                    ${randomRecipes.map(recipe => `
+                        <div class="selected-recipe">
+                            <div>
+                                <strong>${recipe.name}</strong>
+                                <div style="font-size: 14px; color: #666;">
+                                    ${recipe.ingredients.length} ingrédients • ${recipe.type}
+                                </div>
+                            </div>
+                            <div>
+                                <label style="margin-right: 10px;">Portions:</label>
+                                <input type="number" min="1" value="${recipe.portions}" 
+                                       onchange="updateRecipePortions(${recipe.id}, this.value)"
+                                       style="width: 60px;">
+                            </div>
+                        </div>
+                    `).join('')}
+                `;
+            });
+        }
+
+        // Configuration de la liste de courses
+        function setupShoppingList() {
+            const generateBtn = document.getElementById('generate-shopping');
+            const container = document.getElementById('shopping-list-container');
+
+            generateBtn.addEventListener('click', function() {
+                if (recipeManager.selectedRecipes.length === 0) {
+                    container.innerHTML = '<div class="alert alert-warning">Veuillez d\'abord sélectionner des recettes dans la section "Sélection Aléatoire".</div>';
+                    return;
+                }
+
+                const shoppingList = recipeManager.generateShoppingList();
+                
+                container.innerHTML = `
+                    <div class="shopping-list">
+                        <h3>🛒 Liste de Courses</h3>
+                        ${shoppingList.map(item => `
+                            <div class="shopping-item">
+                                <span>${item.name}</span>
+                                <strong>${item.quantity} ${item.unit}</strong>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            });
+        }
+
+        // Fonctions utilitaires
+        function deleteRecipe(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette recette ?')) {
+                recipeManager.deleteRecipe(id);
+                displayRecipes();
+            }
+        }
+
+        function updateRecipePortions(recipeId, newPortions) {
+            const selection = recipeManager.selectedRecipes.find(s => s.recipeId === recipeId);
+            if (selection) {
+                selection.portions = parseInt(newPortions);
+            }
+        }
+    </script>
+</body>
+</html>
