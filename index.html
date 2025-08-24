@@ -493,15 +493,18 @@
             </div>
 
             <!-- Section Sélection Aléatoire -->
-            <div id="random" class="section">
-                <h2>Sélection Aléatoire de Recettes</h2>
-                <div class="random-selection">
-                    <label for="num-recipes">Nombre de recettes à sélectionner :</label>
-                    <input type="number" id="num-recipes" class="number-input" min="1" value="5">
-                    <button id="generate-random" class="btn-success">Générer une sélection aléatoire</button>
-                </div>
-
-                <div id="selected-recipes-container" class="selected-recipes"></div>
+            <div class="random-selection">
+                <label for="num-recipes">Nombre de recettes à sélectionner :</label>
+                <input type="number" id="num-recipes" class="number-input" min="1" value="5">
+                <label for="recipe-types" style="margin-left:20px;">Type(s) de recette :</label>
+                <select id="recipe-types" multiple style="min-width:180px;vertical-align:middle;">
+                    <option value="all">Tous types</option>
+                    <option value="plat">Plat</option>
+                    <option value="entrée">Entrée</option>
+                    <option value="dessert">Dessert</option>
+                    <option value="accompagnement">Accompagnement</option>
+                </select>
+                <button id="generate-random" class="btn-success" style="margin-left:20px;">Générer une sélection aléatoire</button>
             </div>
 
             <!-- Section Liste de Courses -->
@@ -671,13 +674,17 @@
                 return this.recipes.filter(recipe => recipe.type === type);
             }
 
-            getRandomRecipes(count, type = 'plat') {
-                const availableRecipes = this.getRecipesByType(type);
+            getRandomRecipes(count, types = ['plat']) {
+                let availableRecipes;
+                if (!types || types.includes('all')) {
+                    availableRecipes = this.recipes;
+                } else {
+                    availableRecipes = this.recipes.filter(recipe => types.includes(recipe.type));
+                }
                 if (availableRecipes.length === 0) return [];
-                
                 const shuffled = [...availableRecipes].sort(() => 0.5 - Math.random());
                 return shuffled.slice(0, Math.min(count, availableRecipes.length));
-            }
+         }   
 
             generateShoppingList() {
                 const shoppingMap = new Map();
@@ -1091,50 +1098,52 @@
             const generateBtn = document.getElementById('generate-random');
             const container = document.getElementById('selected-recipes-container');
 
-            generateBtn.addEventListener('click', function() {
-                if (!isConnected || recipeManager.recipes.length === 0) {
-                    container.innerHTML = '<div class="alert alert-warning">Veuillez d\'abord charger vos recettes</div>';
-                    return;
-                }
+        generateBtn.addEventListener('click', function() {
+            if (!isConnected || recipeManager.recipes.length === 0) {
+                container.innerHTML = '<div class="alert alert-warning">Veuillez d\'abord charger vos recettes</div>';
+                return;
+            }
 
-                const numRecipes = parseInt(document.getElementById('num-recipes').value);
-                if (!numRecipes || numRecipes < 1) {
-                    alert('Veuillez entrer un nombre valide de recettes.');
-                    return;
-                }
+            const numRecipes = parseInt(document.getElementById('num-recipes').value);
+            if (!numRecipes || numRecipes < 1) {
+                alert('Veuillez entrer un nombre valide de recettes.');
+                return;
+            }
 
-                const randomRecipes = recipeManager.getRandomRecipes(numRecipes, 'plat');
-                if (randomRecipes.length === 0) {
-                    container.innerHTML = '<div class="alert alert-warning">Aucune recette de type "plat" trouvée.</div>';
-                    return;
-                }
+            const typeSelect = document.getElementById('recipe-types');
+            const selectedTypes = Array.from(typeSelect.selectedOptions).map(opt => opt.value);
 
-                recipeManager.selectedRecipes = randomRecipes.map(recipe => ({
-                    recipeId: recipe.id,
-                    portions: recipe.portions
-                }));
+            const randomRecipes = recipeManager.getRandomRecipes(numRecipes, selectedTypes);
+            if (randomRecipes.length === 0) {
+                container.innerHTML = '<div class="alert alert-warning">Aucune recette trouvée pour le(s) type(s) sélectionné(s).</div>';
+                return;
+            }
 
-                container.innerHTML = `
-                    <h3>Recettes sélectionnées :</h3>
-                    ${randomRecipes.map(recipe => `
-                        <div class="selected-recipe">
-                            <div>
-                                <strong>${recipe.name}</strong>
-                                <div style="font-size: 14px; color: #666;">
-                                    ${recipe.ingredients.length} ingrédients • ${recipe.type}
-                                </div>
-                            </div>
-                            <div>
-                                <label style="margin-right: 10px;">Portions:</label>
-                                <input type="number" min="1" value="${recipe.portions}" 
-                                       onchange="updateRecipePortions(${recipe.id}, this.value)"
-                                       style="width: 60px;">
+            recipeManager.selectedRecipes = randomRecipes.map(recipe => ({
+                recipeId: recipe.id,
+                portions: recipe.portions
+            }));
+
+            container.innerHTML = `
+                <h3>Recettes sélectionnées :</h3>
+                ${randomRecipes.map(recipe => `
+                    <div class="selected-recipe">
+                        <div>
+                            <strong>${recipe.name}</strong>
+                            <div style="font-size: 14px; color: #666;">
+                                ${recipe.ingredients.length} ingrédients • ${recipe.type}
                             </div>
                         </div>
-                    `).join('')}
-                `;
-            });
-        }
+                        <div>
+                            <label style="margin-right: 10px;">Portions:</label>
+                            <input type="number" min="1" value="${recipe.portions}" 
+                                onchange="updateRecipePortions(${recipe.id}, this.value)"
+                                style="width: 60px;">
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        });
 
         // Configuration de la liste de courses
         function setupShoppingList() {
