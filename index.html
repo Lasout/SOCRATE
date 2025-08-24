@@ -234,6 +234,42 @@
             border-bottom: none;
         }
 
+        .copy-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .copy-section h4 {
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+
+        .copy-container {
+            position: relative;
+        }
+
+        .copy-container textarea {
+            resize: vertical;
+            background: white;
+            transition: border-color 0.3s;
+        }
+
+        .copy-container textarea:focus {
+            border-color: #3498db !important;
+            outline: none;
+        }
+
+        .shopping-visual {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #e0e0e0;
+        }
+
         .alert {
             padding: 15px;
             border-radius: 8px;
@@ -1118,19 +1154,95 @@
 
                 const shoppingList = recipeManager.generateShoppingList();
                 
+                // Générer le texte pour Google Keep
+                const keepText = shoppingList.map(item => {
+                    const quantity = Math.round(item.quantity * 100) / 100;
+                    return `☐ ${item.name} (${quantity} ${item.unit})`;
+                }).join('\n');
+
+                // Générer aussi une version simple sans cases
+                const simpleText = shoppingList.map(item => {
+                    const quantity = Math.round(item.quantity * 100) / 100;
+                    return `${item.name} - ${quantity} ${item.unit}`;
+                }).join('\n');
+                
                 container.innerHTML = `
                     <div class="shopping-list">
                         <h3>🛒 Liste de Courses</h3>
                         <p><small>Basée sur ${recipeManager.selectedRecipes.length} recette(s) sélectionnée(s)</small></p>
-                        ${shoppingList.map(item => `
-                            <div class="shopping-item">
-                                <span>${item.name}</span>
-                                <strong>${Math.round(item.quantity * 100) / 100} ${item.unit}</strong>
+                        
+                        <!-- Affichage visuel -->
+                        <div class="shopping-visual">
+                            ${shoppingList.map(item => `
+                                <div class="shopping-item">
+                                    <span>☐ ${item.name}</span>
+                                    <strong>${Math.round(item.quantity * 100) / 100} ${item.unit}</strong>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <!-- Zone de copie pour Google Keep -->
+                        <div class="copy-section">
+                            <h4>📋 Copier pour Google Keep</h4>
+                            <p><small>Format avec cases à cocher - Copiez le texte ci-dessous et collez-le dans Google Keep</small></p>
+                            
+                            <div class="copy-container">
+                                <textarea id="keep-text" readonly rows="10" style="width: 100%; padding: 10px; border-radius: 5px; border: 2px solid #ddd; font-family: monospace; font-size: 14px;">${keepText}</textarea>
+                                <button onclick="copyToClipboard('keep-text')" class="btn-success" style="margin-top: 10px;">
+                                    📋 Copier pour Google Keep
+                                </button>
                             </div>
-                        `).join('')}
+                        </div>
+
+                        <!-- Zone de copie version simple -->
+                        <div class="copy-section" style="margin-top: 20px;">
+                            <h4>📝 Version Simple</h4>
+                            <p><small>Sans cases à cocher - Pour autres applications</small></p>
+                            
+                            <div class="copy-container">
+                                <textarea id="simple-text" readonly rows="8" style="width: 100%; padding: 10px; border-radius: 5px; border: 2px solid #ddd; font-family: monospace; font-size: 14px;">${simpleText}</textarea>
+                                <button onclick="copyToClipboard('simple-text')" class="btn-success" style="margin-top: 10px;">
+                                    📋 Copier version simple
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 `;
             });
+        }
+
+        // Fonction pour copier dans le presse-papiers
+        async function copyToClipboard(textareaId) {
+            const textarea = document.getElementById(textareaId);
+            const text = textarea.value;
+
+            try {
+                // Méthode moderne (préférée)
+                await navigator.clipboard.writeText(text);
+                
+                // Feedback visuel
+                const button = textarea.nextElementSibling;
+                const originalText = button.textContent;
+                button.textContent = '✅ Copié !';
+                button.style.background = '#27ae60';
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '';
+                }, 2000);
+
+            } catch (err) {
+                // Fallback pour navigateurs plus anciens
+                textarea.select();
+                textarea.setSelectionRange(0, 99999); // Pour mobile
+                
+                try {
+                    document.execCommand('copy');
+                    alert('✅ Texte copié dans le presse-papiers !');
+                } catch (fallbackErr) {
+                    alert('❌ Impossible de copier automatiquement. Veuillez sélectionner le texte et copier manuellement (Ctrl+C).');
+                }
+            }
         }
 
         // Fonctions utilitaires globales
