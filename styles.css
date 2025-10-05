@@ -1,40 +1,35 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
-    padding: 20px;
+    padding: 2rem 0;
 }
 .container {
-    max-width: 1200px;
+    background: #fff;
+    border-radius: 1.5rem;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+    padding: 2rem;
+    max-width: 900px;
     margin: 0 auto;
-    background: white;
-    border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.1);
-    overflow: hidden;
 }
 .header {
     background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
     color: white;
-    padding: 30px;
+    padding: 2rem 1rem 1.5rem 1rem;
     text-align: center;
+    border-radius: 1rem 1rem 0 0;
     position: relative;
 }
 .header h1 {
-    font-size: 2.5em;
-    margin-bottom: 10px;
+    font-size: 2.2em;
+    margin-bottom: 0.5em;
 }
 .connection-status {
     position: absolute;
-    top: 20px;
-    right: 20px;
-    padding: 8px 12px;
-    border-radius: 20px;
-    font-size: 12px;
+    top: 1.2rem;
+    right: 1.2rem;
+    padding: 0.5em 1em;
+    border-radius: 1em;
+    font-size: 0.9em;
     font-weight: bold;
 }
 .status-online {
@@ -45,31 +40,23 @@ body {
     background: #e74c3c;
     color: white;
 }
-.nav {
-    background: #ecf0f1;
-    padding: 0;
-    display: flex;
-    justify-content: center;
+.navbar {
+    margin-bottom: 2rem;
 }
-.nav button {
-    background: none;
-    border: none;
-    padding: 15px 30px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: all 0.3s;
-    border-bottom: 3px solid transparent;
+.navbar .nav-link {
+    color: #222;
+    font-weight: 600;
+    border-radius: 0.5em;
+    margin: 0 0.2em;
+    padding: 0.7em 1.2em;
+    transition: background 0.2s, color 0.2s;
 }
-.nav button:hover {
-    background: #d5dbdb;
-}
-.nav button.active {
-    background: white;
-    border-bottom-color: #3498db;
-    color: #3498db;
+.navbar .nav-link.active, .navbar .nav-link:focus, .navbar .nav-link:hover {
+    background: #f4f4f4;
+    color: #667eea;
 }
 .content {
-    padding: 30px;
+    padding: 2rem 0;
 }
 .section {
     display: none;
@@ -78,52 +65,168 @@ body {
     display: block;
 }
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 1.5rem;
 }
 label {
-    display: block;
-    margin-bottom: 8px;
     font-weight: 600;
     color: #2c3e50;
 }
-input, select, textarea {
-    width: 100%;
-    padding: 12px;
-    border: 2px solid #ecf0f1;
-    border-radius: 8px;
-    font-size: 16px;
-    transition: border-color 0.3s;
+.recipe-card {
+    background: #f8f9fa;
+    padding: 1.2rem;
+    border-radius: 0.8rem;
+    margin-bottom: 1rem;
+    border-left: 4px solid #667eea;
+    transition: box-shadow 0.2s;
 }
-input:focus, select:focus, textarea:focus {
-    outline: none;
-    border-color: #3498db;
+.recipe-card:hover {
+    box-shadow: 0 2px 12px rgba(102,126,234,0.08);
 }
-button {
-    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+.recipe-title {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 0.5em;
+}
+.recipe-meta {
+    display: flex;
+    gap: 1.2em;
+    margin-bottom: 0.7em;
+    font-size: 0.95em;
+    color: #7f8c8d;
+}
+.ingredients-list {
+    background: white;
+    padding: 0.8em;
+    border-radius: 0.5em;
+    margin-top: 0.5em;
+}
+.ingredient-item {
+    padding: 0.5em 0;
+    border-bottom: 1px solid #ecf0f1;
+    display: flex;
+    justify-content: space-between;
+}
+.ingredient-item:last-child {
+    border-bottom: none;
+}
+.random-selection {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
     color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: 600;
-    transition: all 0.3s;
-    margin-right: 10px;
-    margin-bottom: 10px;
+    padding: 1.2rem;
+    border-radius: 0.8rem;
+    margin-bottom: 1.2rem;
 }
-button:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+.shopping-list {
+    background: #e8f5e8;
+    padding: 1.2rem;
+    border-radius: 0.8rem;
+    margin-top: 1.2rem;
 }
-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+.shopping-item {
+    padding: 0.7em;
+    border-bottom: 1px solid #c8e6c9;
+    display: flex;
+    justify-content: space-between;
 }
-.btn-danger {
-    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+.shopping-item:last-child {
+    border-bottom: none;
 }
-.btn-success {
-    background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+.copy-section {
+    background: #f8f9fa;
+    padding: 0.8em;
+    border-radius: 0.5em;
+    margin-top: 0.8em;
+    border-left: 4px solid #17a2b8;
+}
+.copy-section h4 {
+    margin-bottom: 0.3em;
+    color: #2c3e50;
+}
+.copy-container textarea {
+    resize: vertical;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 0.4em;
+    font-family: monospace;
+    font-size: 1em;
+}
+.shopping-visual {
+    background: white;
+    padding: 0.8em;
+    border-radius: 0.5em;
+    margin-bottom: 0.8em;
+    border: 1px solid #e0e0e0;
+}
+.alert {
+    padding: 1em;
+    border-radius: 0.5em;
+    margin-bottom: 1.2em;
+}
+.alert-info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+.alert-warning {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+.alert-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+.loading {
+    text-align: center;
+    padding: 1em;
+    color: #666;
+}
+.number-input {
+    width: 100px;
+    display: inline-block;
+    margin-right: 0.7em;
+}
+.selected-recipes {
+    margin-top: 1.2em;
+}
+.selected-recipe {
+    background: white;
+    padding: 0.8em;
+    border-radius: 0.5em;
+    margin-bottom: 0.7em;
+    border: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.migration-section {
+    background: #fff3cd;
+    padding: 1.2rem;
+    border-radius: 0.8rem;
+    margin-bottom: 1.2rem;
+    border-left: 4px solid #ffc107;
+}
+.config-section {
+    background: #d1ecf1;
+    padding: 1.2rem;
+    border-radius: 0.8rem;
+    margin-bottom: 1.2rem;
+    border-left: 4px solid #17a2b8;
+}
+@media (max-width: 768px) {
+    .navbar .nav-link {
+        display: block;
+        margin: 0.2em 0;
+    }
+    .recipe-meta {
+        flex-direction: column;
+        gap: 0.5em;
+    }
+    .content {
+        padding: 1em 0;
+    }
 }
 .recipe-card {
     background: #f8f9fa;
